@@ -4,6 +4,7 @@ import { KPIWidget } from '../widgets/KPIWidget';
 import { TableWidget } from '../widgets/TableWidget';
 import { ChartWidget } from '../widgets/ChartWidget';
 import { OperationalWidget } from '../widgets/OperationalWidget';
+import { DomainMarketplace } from '../marketplace/DomainMarketplace';
 import {
   X,
   Plus,
@@ -19,6 +20,7 @@ import {
   Sliders,
   Download,
   Upload,
+  Store,
 } from 'lucide-react';
 
 interface StudioEditorProps {
@@ -36,7 +38,7 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
 }) => {
   const [activeSchema, setActiveSchema] = useState<DashboardPageSchema>(JSON.parse(JSON.stringify(schema)));
   const [viewName, setViewName] = useState(schema.viewName || 'Billy Custom View');
-  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'marketplace'>('editor');
   const [importJsonText, setImportJsonText] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
 
@@ -244,6 +246,14 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
               >
                 <Eye className="w-3.5 h-3.5" /> Live Preview
               </button>
+              <button
+                onClick={() => setActiveTab('marketplace')}
+                className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
+                  activeTab === 'marketplace' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400'
+                }`}
+              >
+                <Store className="w-3.5 h-3.5" /> Domain Pack Store
+              </button>
             </div>
 
             <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800">
@@ -252,7 +262,11 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
           </div>
         </div>
 
-        {activeTab === 'editor' ? (
+        {activeTab === 'marketplace' ? (
+          <div className="max-h-[55vh] overflow-y-auto pr-1">
+            <DomainMarketplace />
+          </div>
+        ) : activeTab === 'editor' ? (
           <div className="space-y-6">
             {/* Global Theme & View Metadata Settings */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800/80">

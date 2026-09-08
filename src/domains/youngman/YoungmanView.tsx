@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ProjectEntity, OpportunityEntity } from '../../core/data/types';
-import { Building2, DollarSign, FileText, Users, HardHat, ShieldCheck, Plus, Layers, ArrowUpRight, Calculator, Check } from 'lucide-react';
+import { Building2, DollarSign, FileText, Users, HardHat, ShieldCheck, Plus, Layers, ArrowUpRight, Calculator, Check, BarChart2, TrendingUp } from 'lucide-react';
+import { GanttChart } from './GanttChart';
+import { calculateWIP, WIPRow } from '../../core/data/wipEngine';
 
 interface YoungmanViewProps {
   projects: ProjectEntity[];
@@ -9,7 +11,8 @@ interface YoungmanViewProps {
 }
 
 export const YoungmanView: React.FC<YoungmanViewProps> = ({ projects, opportunities, onPromoteOpportunity }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'crm' | 'projects' | 'estimating' | 'field'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'crm' | 'projects' | 'wip' | 'estimating' | 'gantt' | 'field'>('overview');
+  const [selectedProjectForGantt, setSelectedProjectForGantt] = useState<string>(projects[0]?.title || 'Oakridge Expansion');
 
   // Estimating Interactive Calculator State
   const [directCost, setDirectCost] = useState(180000);
@@ -21,6 +24,18 @@ export const YoungmanView: React.FC<YoungmanViewProps> = ({ projects, opportunit
   const sellingPrice = Math.round(subtotalCost / (1 - targetMarginPct / 100));
   const profitVal = sellingPrice - subtotalCost;
 
+  // Compute WIP Schedule
+  const wipRows: WIPRow[] = projects.map((prj, idx) => {
+    const mockBilled = Math.round(prj.contractValue * (idx === 0 ? 0.55 : 0.22));
+    return calculateWIP(prj, mockBilled);
+  });
+
+  const totalContract = wipRows.reduce((a, b) => a + b.revisedContract, 0);
+  const totalEarned = wipRows.reduce((a, b) => a + b.earnedRevenue, 0);
+  const totalBilled = wipRows.reduce((a, b) => a + b.billedToDate, 0);
+  const totalOverbilled = wipRows.reduce((a, b) => a + b.overbilled, 0);
+  const totalUnderbilled = wipRows.reduce((a, b) => a + b.underbilled, 0);
+
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
@@ -29,6 +44,8 @@ export const YoungmanView: React.FC<YoungmanViewProps> = ({ projects, opportunit
           { id: 'overview', label: 'Youngman Overview', icon: <Building2 className="w-4 h-4" /> },
           { id: 'crm', label: 'CRM & Pipeline', icon: <DollarSign className="w-4 h-4" /> },
           { id: 'projects', label: 'Project Command Center', icon: <Layers className="w-4 h-4" /> },
+          { id: 'wip', label: 'WIP Revenue Recognition', icon: <TrendingUp className="w-4 h-4" /> },
+          { id: 'gantt', label: 'Schedule & Gantt Timeline', icon: <BarChart2 className="w-4 h-4" /> },
           { id: 'estimating', label: 'Estimating & Bidding Calculator', icon: <Calculator className="w-4 h-4" /> },
           { id: 'field', label: 'Field Operations & Safety', icon: <HardHat className="w-4 h-4" /> },
         ].map((tab) => (
@@ -46,6 +63,104 @@ export const YoungmanView: React.FC<YoungmanViewProps> = ({ projects, opportunit
           </button>
         ))}
       </div>
+
+      {/* WIP Schedule View */}
+      {activeTab === 'wip' && (
+        <div className="space-y-6 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-800 gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-amber-400" />
+                <h3 className="text-sm font-bold text-white">Work-In-Progress (WIP) Financial Schedule</h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">Percentage-of-Completion Revenue Recognition & Over/Under Billing Exposure</p>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs font-mono">
+              <div className="px-3 py-1.5 bg-slate-950 rounded-lg border border-slate-800 text-slate-300">
+                Overbilled: <span className="text-emerald-400 font-bold">${new Intl.NumberFormat().format(totalOverbilled)}</span>
+              </div>
+              <div className="px-3 py-1.5 bg-slate-950 rounded-lg border border-slate-800 text-slate-300">
+                Underbilled: <span className="text-amber-400 font-bold">${new Intl.NumberFormat().format(totalUnderbilled)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 uppercase font-mono text-[10px]">
+                  <th className="py-2.5 px-3">Project</th>
+                  <th className="py-2.5 px-3 text-right">Contract</th>
+                  <th className="py-2.5 px-3 text-right">Cost To Date</th>
+                  <th className="py-2.5 px-3 text-center">% Complete</th>
+                  <th className="py-2.5 px-3 text-right">Earned Revenue</th>
+                  <th className="py-2.5 px-3 text-right">Billed To Date</th>
+                  <th className="py-2.5 px-3 text-right">Over/(Under) Billing</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-mono">
+                {wipRows.map((row) => (
+                  <tr key={row.projectId} className="hover:bg-slate-800/40">
+                    <td className="py-3 px-3 font-sans">
+                      <div className="font-bold text-slate-200">{row.projectTitle}</div>
+                      <div className="text-[10px] text-slate-500 font-mono">{row.projectCode}</div>
+                    </td>
+                    <td className="py-3 px-3 text-right text-slate-200">${new Intl.NumberFormat().format(row.revisedContract)}</td>
+                    <td className="py-3 px-3 text-right text-slate-300">${new Intl.NumberFormat().format(row.actualCostToDate)}</td>
+                    <td className="py-3 px-3 text-center">
+                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-bold">
+                        {row.percentComplete}%
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-right text-slate-200">${new Intl.NumberFormat().format(row.earnedRevenue)}</td>
+                    <td className="py-3 px-3 text-right text-slate-300">${new Intl.NumberFormat().format(row.billedToDate)}</td>
+                    <td className="py-3 px-3 text-right font-bold">
+                      {row.overbilled > 0 ? (
+                        <span className="text-emerald-400">+${new Intl.NumberFormat().format(row.overbilled)}</span>
+                      ) : (
+                        <span className="text-amber-400">-${new Intl.NumberFormat().format(row.underbilled)}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="border-t-2 border-slate-700 font-mono font-bold text-slate-100">
+                <tr>
+                  <td className="py-3 px-3 font-sans uppercase text-[11px]">Total Portfolio</td>
+                  <td className="py-3 px-3 text-right">${new Intl.NumberFormat().format(totalContract)}</td>
+                  <td className="py-3 px-3 text-right">-</td>
+                  <td className="py-3 px-3 text-center">-</td>
+                  <td className="py-3 px-3 text-right">${new Intl.NumberFormat().format(totalEarned)}</td>
+                  <td className="py-3 px-3 text-right">${new Intl.NumberFormat().format(totalBilled)}</td>
+                  <td className="py-3 px-3 text-right text-emerald-400">+${new Intl.NumberFormat().format(totalOverbilled - totalUnderbilled)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Gantt Timeline View */}
+      {activeTab === 'gantt' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between bg-slate-900 p-4 border border-slate-800 rounded-xl">
+            <div className="text-xs text-slate-300 font-medium">Select Active Project Schedule:</div>
+            <select
+              value={selectedProjectForGantt}
+              onChange={(e) => setSelectedProjectForGantt(e.target.value)}
+              className="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-amber-500 font-semibold"
+            >
+              {projects.map((p) => (
+                <option key={p.id} value={p.title}>
+                  {p.code} - {p.title}
+                </option>
+              ))}
+            </select>
+          </div>
+          <GanttChart projectName={selectedProjectForGantt} />
+        </div>
+      )}
 
       {/* Estimating Scope Calculator Tab */}
       {activeTab === 'estimating' && (

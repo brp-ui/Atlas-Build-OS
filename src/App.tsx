@@ -23,6 +23,8 @@ import { AIGeneratorModal } from './ai/builder/AIGeneratorModal';
 import { CommandPalette } from './core/command/palette';
 import { NotificationDrawer } from './core/notifications/NotificationDrawer';
 import { CreateProjectModal, CreateRFIModal } from './core/data/EntityModals';
+import { ToastManager } from './core/notifications/ToastManager';
+import { KeyboardShortcutsModal } from './core/command/KeyboardShortcutsModal';
 import { DashboardPageSchema } from './studio/schema/types';
 import { YOUNGMAN_EXECUTIVE_DASHBOARD, CENTURY_FIRE_DASHBOARD, PERSONAL_OS_DASHBOARD } from './studio/schema/templates';
 
@@ -73,6 +75,7 @@ export function App() {
   const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isCreateRFIOpen, setIsCreateRFIOpen] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
   // Custom schemas per workspace
   const [activeSchema, setActiveSchema] = useState<DashboardPageSchema>(() => YOUNGMAN_EXECUTIVE_DASHBOARD);
@@ -198,6 +201,15 @@ export function App() {
             <kbd className="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded text-[10px] text-slate-500 font-mono">
               Ctrl+K
             </kbd>
+          </button>
+
+          {/* Keyboard Shortcuts Trigger */}
+          <button
+            onClick={() => setIsShortcutsOpen(true)}
+            className="px-2.5 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white text-xs rounded-xl font-mono"
+            title="Keyboard Shortcuts (?)"
+          >
+            ?
           </button>
 
           {/* AI Builder Button */}
@@ -380,6 +392,9 @@ export function App() {
         onOpenAIBuilder={() => setIsAIGeneratorOpen(true)}
         onNavigateDomain={(dom) => setActiveDomain(dom)}
       />
+
+      <KeyboardShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} />
+      <ToastManager />
     </div>
   );
 }
