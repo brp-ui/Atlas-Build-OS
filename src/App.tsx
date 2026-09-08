@@ -21,10 +21,6 @@ import { PersonalView } from './domains/personal/PersonalView';
 import { StudioEditor } from './studio/editor/StudioEditor';
 import { AIGeneratorModal } from './ai/builder/AIGeneratorModal';
 import { CommandPalette } from './core/command/palette';
-import { NotificationDrawer } from './core/notifications/NotificationDrawer';
-import { CreateProjectModal, CreateRFIModal } from './core/data/EntityModals';
-import { ToastManager } from './core/notifications/ToastManager';
-import { KeyboardShortcutsModal } from './core/command/KeyboardShortcutsModal';
 import { DashboardPageSchema } from './studio/schema/types';
 import { YOUNGMAN_EXECUTIVE_DASHBOARD, CENTURY_FIRE_DASHBOARD, PERSONAL_OS_DASHBOARD } from './studio/schema/templates';
 
@@ -41,7 +37,6 @@ import {
   Layers,
   LayoutGrid,
   Search,
-  Plus,
 } from 'lucide-react';
 
 export function App() {
@@ -57,25 +52,20 @@ export function App() {
   const [activeWorkspace, setActiveWorkspace] = useState(identityManager.getActiveWorkspace());
   const [activeRole, setActiveRole] = useState(identityManager.getActiveRole());
   const [activeDomain, setActiveDomain] = useState<string>('command_center');
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Entities Data Store
   const [projects, setProjects] = useState(SAMPLE_PROJECTS);
   const [opportunities, setOpportunities] = useState(SAMPLE_OPPORTUNITIES);
-  const [rfis, setRfis] = useState(SAMPLE_RFIS);
+  const [rfis] = useState(SAMPLE_RFIS);
   const [changeOrders] = useState(SAMPLE_CHANGE_ORDERS);
   const [permits] = useState(SAMPLE_PERMITS);
   const [goals] = useState(SAMPLE_GOALS);
   const [financialMetrics] = useState(SAMPLE_FINANCIAL_METRICS);
 
-  // Modals & Drawers
+  // Modals
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [isAIGeneratorOpen, setIsAIGeneratorOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
-  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
-  const [isCreateRFIOpen, setIsCreateRFIOpen] = useState(false);
-  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
   // Custom schemas per workspace
   const [activeSchema, setActiveSchema] = useState<DashboardPageSchema>(() => YOUNGMAN_EXECUTIVE_DASHBOARD);
@@ -114,7 +104,6 @@ export function App() {
 
       // Trigger automation evaluation
       automationEngine.evaluateEvent('opportunity_submitted', updatedOpportunity);
-      setRefreshTrigger((r) => r + 1);
     }
   };
 
@@ -182,37 +171,19 @@ export function App() {
 
         {/* Right Header Bar Actions */}
         <div className="flex items-center gap-3">
-          {/* Quick Create Project */}
-          <button
-            onClick={() => setIsCreateProjectOpen(true)}
-            className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1 shadow"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Project</span>
-          </button>
-
-          {/* Search & Command Palette */}
+          {/* Command Palette Trigger */}
           <button
             onClick={() => setIsCommandPaletteOpen(true)}
             className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs text-slate-400 rounded-xl flex items-center gap-2 transition-colors"
           >
             <Search className="w-3.5 h-3.5" />
-            <span>Commands...</span>
+            <span>Search & Commands...</span>
             <kbd className="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded text-[10px] text-slate-500 font-mono">
               Ctrl+K
             </kbd>
           </button>
 
-          {/* Keyboard Shortcuts Trigger */}
-          <button
-            onClick={() => setIsShortcutsOpen(true)}
-            className="px-2.5 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white text-xs rounded-xl font-mono"
-            title="Keyboard Shortcuts (?)"
-          >
-            ?
-          </button>
-
-          {/* AI Builder Button */}
+          {/* AI Generator Button */}
           <button
             onClick={() => setIsAIGeneratorOpen(true)}
             className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow"
@@ -223,10 +194,7 @@ export function App() {
 
           {/* Notifications Queue Counter */}
           <div className="relative">
-            <button
-              onClick={() => setIsNotificationDrawerOpen(true)}
-              className="p-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 hover:text-white transition-colors"
-            >
+            <button className="p-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 hover:text-white transition-colors">
               <Bell className="w-4 h-4" />
             </button>
             {notifications.length > 0 && (
@@ -336,11 +304,10 @@ export function App() {
         </main>
       </div>
 
-      {/* Modals & Drawers */}
+      {/* Modals & Command Palette */}
       {isStudioOpen && (
         <StudioEditor
           schema={activeSchema}
-          dataStore={dataStore}
           onSaveSchema={(updated) => setActiveSchema(updated)}
           onClose={() => setIsStudioOpen(false)}
         />
@@ -358,33 +325,6 @@ export function App() {
         />
       )}
 
-      {isCreateProjectOpen && (
-        <CreateProjectModal
-          isOpen={isCreateProjectOpen}
-          activeWorkspaceId={activeWorkspace.id}
-          onClose={() => setIsCreateProjectOpen(false)}
-          onCreateProject={(newPrj) => setProjects((prev) => [newPrj, ...prev])}
-        />
-      )}
-
-      {isCreateRFIOpen && (
-        <CreateRFIModal
-          isOpen={isCreateRFIOpen}
-          activeWorkspaceId={activeWorkspace.id}
-          projects={filteredProjects}
-          onClose={() => setIsCreateRFIOpen(false)}
-          onCreateRFI={(newRFI) => setRfis((prev) => [newRFI, ...prev])}
-        />
-      )}
-
-      <NotificationDrawer
-        isOpen={isNotificationDrawerOpen}
-        workspaceId={activeWorkspace.id}
-        queue={notificationQueue}
-        onClose={() => setIsNotificationDrawerOpen(false)}
-        onRefresh={() => setRefreshTrigger((r) => r + 1)}
-      />
-
       <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
@@ -392,9 +332,6 @@ export function App() {
         onOpenAIBuilder={() => setIsAIGeneratorOpen(true)}
         onNavigateDomain={(dom) => setActiveDomain(dom)}
       />
-
-      <KeyboardShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} />
-      <ToastManager />
     </div>
   );
 }

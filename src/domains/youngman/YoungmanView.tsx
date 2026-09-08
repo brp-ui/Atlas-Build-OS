@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { ProjectEntity, OpportunityEntity } from '../../core/data/types';
-import { Building2, DollarSign, FileText, Users, HardHat, ShieldCheck, Plus, Layers, ArrowUpRight, Calculator, Check, BarChart2, TrendingUp } from 'lucide-react';
-import { GanttChart } from './GanttChart';
-import { calculateWIP, WIPRow } from '../../core/data/wipEngine';
+import { Building2, DollarSign, FileText, Users, HardHat, ShieldCheck, Plus, Layers, ArrowUpRight } from 'lucide-react';
 
 interface YoungmanViewProps {
   projects: ProjectEntity[];
@@ -11,30 +9,7 @@ interface YoungmanViewProps {
 }
 
 export const YoungmanView: React.FC<YoungmanViewProps> = ({ projects, opportunities, onPromoteOpportunity }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'crm' | 'projects' | 'wip' | 'estimating' | 'gantt' | 'field'>('overview');
-  const [selectedProjectForGantt, setSelectedProjectForGantt] = useState<string>(projects[0]?.title || 'Oakridge Expansion');
-
-  // Estimating Interactive Calculator State
-  const [directCost, setDirectCost] = useState(180000);
-  const [overheadPct, setOverheadPct] = useState(10);
-  const [targetMarginPct, setTargetMarginPct] = useState(25);
-
-  const overheadVal = Math.round(directCost * (overheadPct / 100));
-  const subtotalCost = directCost + overheadVal;
-  const sellingPrice = Math.round(subtotalCost / (1 - targetMarginPct / 100));
-  const profitVal = sellingPrice - subtotalCost;
-
-  // Compute WIP Schedule
-  const wipRows: WIPRow[] = projects.map((prj, idx) => {
-    const mockBilled = Math.round(prj.contractValue * (idx === 0 ? 0.55 : 0.22));
-    return calculateWIP(prj, mockBilled);
-  });
-
-  const totalContract = wipRows.reduce((a, b) => a + b.revisedContract, 0);
-  const totalEarned = wipRows.reduce((a, b) => a + b.earnedRevenue, 0);
-  const totalBilled = wipRows.reduce((a, b) => a + b.billedToDate, 0);
-  const totalOverbilled = wipRows.reduce((a, b) => a + b.overbilled, 0);
-  const totalUnderbilled = wipRows.reduce((a, b) => a + b.underbilled, 0);
+  const [activeTab, setActiveTab] = useState<'overview' | 'crm' | 'projects' | 'estimating' | 'field'>('overview');
 
   return (
     <div className="space-y-6">
@@ -44,9 +19,7 @@ export const YoungmanView: React.FC<YoungmanViewProps> = ({ projects, opportunit
           { id: 'overview', label: 'Youngman Overview', icon: <Building2 className="w-4 h-4" /> },
           { id: 'crm', label: 'CRM & Pipeline', icon: <DollarSign className="w-4 h-4" /> },
           { id: 'projects', label: 'Project Command Center', icon: <Layers className="w-4 h-4" /> },
-          { id: 'wip', label: 'WIP Revenue Recognition', icon: <TrendingUp className="w-4 h-4" /> },
-          { id: 'gantt', label: 'Schedule & Gantt Timeline', icon: <BarChart2 className="w-4 h-4" /> },
-          { id: 'estimating', label: 'Estimating & Bidding Calculator', icon: <Calculator className="w-4 h-4" /> },
+          { id: 'estimating', label: 'Estimating & Bidding', icon: <FileText className="w-4 h-4" /> },
           { id: 'field', label: 'Field Operations & Safety', icon: <HardHat className="w-4 h-4" /> },
         ].map((tab) => (
           <button
@@ -54,7 +27,7 @@ export const YoungmanView: React.FC<YoungmanViewProps> = ({ projects, opportunit
             onClick={() => setActiveTab(tab.id as any)}
             className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
               activeTab === tab.id
-                ? 'bg-amber-500 text-slate-950 shadow-md font-bold'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
                 : 'bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
             }`}
           >
@@ -64,180 +37,14 @@ export const YoungmanView: React.FC<YoungmanViewProps> = ({ projects, opportunit
         ))}
       </div>
 
-      {/* WIP Schedule View */}
-      {activeTab === 'wip' && (
-        <div className="space-y-6 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-          <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-800 gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-amber-400" />
-                <h3 className="text-sm font-bold text-white">Work-In-Progress (WIP) Financial Schedule</h3>
-              </div>
-              <p className="text-xs text-slate-400 mt-1">Percentage-of-Completion Revenue Recognition & Over/Under Billing Exposure</p>
-            </div>
-
-            <div className="flex items-center gap-4 text-xs font-mono">
-              <div className="px-3 py-1.5 bg-slate-950 rounded-lg border border-slate-800 text-slate-300">
-                Overbilled: <span className="text-emerald-400 font-bold">${new Intl.NumberFormat().format(totalOverbilled)}</span>
-              </div>
-              <div className="px-3 py-1.5 bg-slate-950 rounded-lg border border-slate-800 text-slate-300">
-                Underbilled: <span className="text-amber-400 font-bold">${new Intl.NumberFormat().format(totalUnderbilled)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-400 uppercase font-mono text-[10px]">
-                  <th className="py-2.5 px-3">Project</th>
-                  <th className="py-2.5 px-3 text-right">Contract</th>
-                  <th className="py-2.5 px-3 text-right">Cost To Date</th>
-                  <th className="py-2.5 px-3 text-center">% Complete</th>
-                  <th className="py-2.5 px-3 text-right">Earned Revenue</th>
-                  <th className="py-2.5 px-3 text-right">Billed To Date</th>
-                  <th className="py-2.5 px-3 text-right">Over/(Under) Billing</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 font-mono">
-                {wipRows.map((row) => (
-                  <tr key={row.projectId} className="hover:bg-slate-800/40">
-                    <td className="py-3 px-3 font-sans">
-                      <div className="font-bold text-slate-200">{row.projectTitle}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">{row.projectCode}</div>
-                    </td>
-                    <td className="py-3 px-3 text-right text-slate-200">${new Intl.NumberFormat().format(row.revisedContract)}</td>
-                    <td className="py-3 px-3 text-right text-slate-300">${new Intl.NumberFormat().format(row.actualCostToDate)}</td>
-                    <td className="py-3 px-3 text-center">
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-bold">
-                        {row.percentComplete}%
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-right text-slate-200">${new Intl.NumberFormat().format(row.earnedRevenue)}</td>
-                    <td className="py-3 px-3 text-right text-slate-300">${new Intl.NumberFormat().format(row.billedToDate)}</td>
-                    <td className="py-3 px-3 text-right font-bold">
-                      {row.overbilled > 0 ? (
-                        <span className="text-emerald-400">+${new Intl.NumberFormat().format(row.overbilled)}</span>
-                      ) : (
-                        <span className="text-amber-400">-${new Intl.NumberFormat().format(row.underbilled)}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="border-t-2 border-slate-700 font-mono font-bold text-slate-100">
-                <tr>
-                  <td className="py-3 px-3 font-sans uppercase text-[11px]">Total Portfolio</td>
-                  <td className="py-3 px-3 text-right">${new Intl.NumberFormat().format(totalContract)}</td>
-                  <td className="py-3 px-3 text-right">-</td>
-                  <td className="py-3 px-3 text-center">-</td>
-                  <td className="py-3 px-3 text-right">${new Intl.NumberFormat().format(totalEarned)}</td>
-                  <td className="py-3 px-3 text-right">${new Intl.NumberFormat().format(totalBilled)}</td>
-                  <td className="py-3 px-3 text-right text-emerald-400">+${new Intl.NumberFormat().format(totalOverbilled - totalUnderbilled)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Gantt Timeline View */}
-      {activeTab === 'gantt' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between bg-slate-900 p-4 border border-slate-800 rounded-xl">
-            <div className="text-xs text-slate-300 font-medium">Select Active Project Schedule:</div>
-            <select
-              value={selectedProjectForGantt}
-              onChange={(e) => setSelectedProjectForGantt(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-amber-500 font-semibold"
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.title}>
-                  {p.code} - {p.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          <GanttChart projectName={selectedProjectForGantt} />
-        </div>
-      )}
-
-      {/* Estimating Scope Calculator Tab */}
-      {activeTab === 'estimating' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
-          <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-            <div className="p-2.5 bg-amber-950 border border-amber-800/60 rounded-xl text-amber-400">
-              <Calculator className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white">Youngman Estimating & Profit Margin Calculator</h3>
-              <p className="text-xs text-slate-400">Calculate selling price, overhead allocation, and target gross margin</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-4 bg-slate-950 p-4 rounded-xl border border-slate-800/80 text-xs">
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Estimated Direct Cost ($)</label>
-                <input
-                  type="number"
-                  value={directCost}
-                  onChange={(e) => setDirectCost(Number(e.target.value))}
-                  className="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-xl p-2.5 font-mono focus:border-amber-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Company Overhead Rate (%)</label>
-                <input
-                  type="number"
-                  value={overheadPct}
-                  onChange={(e) => setOverheadPct(Number(e.target.value))}
-                  className="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-xl p-2.5 font-mono focus:border-amber-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Target Gross Margin (%)</label>
-                <input
-                  type="number"
-                  value={targetMarginPct}
-                  onChange={(e) => setTargetMarginPct(Number(e.target.value))}
-                  className="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-xl p-2.5 font-mono focus:border-amber-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="md:col-span-2 grid grid-cols-2 gap-4">
-              <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
-                <div className="text-[10px] text-slate-400 uppercase font-mono">Overhead Allocation</div>
-                <div className="text-xl font-bold text-slate-200">${new Intl.NumberFormat().format(overheadVal)}</div>
-              </div>
-
-              <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
-                <div className="text-[10px] text-slate-400 uppercase font-mono">Total Estimated Cost</div>
-                <div className="text-xl font-bold text-slate-200">${new Intl.NumberFormat().format(subtotalCost)}</div>
-              </div>
-
-              <div className="p-4 bg-amber-950/20 border border-amber-900/40 rounded-xl space-y-1">
-                <div className="text-[10px] text-amber-400 uppercase font-mono">Calculated Selling Price</div>
-                <div className="text-2xl font-black text-amber-400">${new Intl.NumberFormat().format(sellingPrice)}</div>
-              </div>
-
-              <div className="p-4 bg-emerald-950/20 border border-emerald-900/40 rounded-xl space-y-1">
-                <div className="text-[10px] text-emerald-400 uppercase font-mono">Projected Net Profit</div>
-                <div className="text-2xl font-black text-emerald-400">${new Intl.NumberFormat().format(profitVal)}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CRM & Pipeline */}
+      {/* Tab Content */}
       {activeTab === 'crm' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-200">Youngman CRM & Bidding Pipeline</h3>
+            <button className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg flex items-center gap-1.5 shadow">
+              <Plus className="w-4 h-4" /> New Opportunity
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -319,6 +126,13 @@ export const YoungmanView: React.FC<YoungmanViewProps> = ({ projects, opportunit
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'estimating' && (
+        <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl text-slate-400 text-xs space-y-2">
+          <h4 className="text-sm font-bold text-slate-200">Estimating & Scope Verification Engine</h4>
+          <p>Scope & Takeoff modules configured with direct/indirect cost limits, overhead, and margin checks.</p>
         </div>
       )}
 
