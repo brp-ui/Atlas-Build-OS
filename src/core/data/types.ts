@@ -48,6 +48,7 @@ export interface ProjectEntity extends BaseEntity {
   customerId: string;
   contractValue: number;
   originalBudget: number;
+  revisedBudget?: number;
   committedCost: number;
   actualCost: number;
   projectedGP: number;
