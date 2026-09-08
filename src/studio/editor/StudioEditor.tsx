@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DashboardPageSchema, WidgetConfig, WidgetType } from '../schema/types';
+import { DashboardPageSchema, WidgetConfig, WidgetType, ChartType } from '../schema/types';
 import { KPIWidget } from '../widgets/KPIWidget';
 import { TableWidget } from '../widgets/TableWidget';
 import { ChartWidget } from '../widgets/ChartWidget';
@@ -17,6 +17,8 @@ import {
   Check,
   Edit2,
   Sliders,
+  Download,
+  Upload,
 } from 'lucide-react';
 
 interface StudioEditorProps {
@@ -35,6 +37,8 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
   const [activeSchema, setActiveSchema] = useState<DashboardPageSchema>(JSON.parse(JSON.stringify(schema)));
   const [viewName, setViewName] = useState(schema.viewName || 'Billy Custom View');
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
+  const [importJsonText, setImportJsonText] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const themes: Array<{ id: DashboardPageSchema['theme']; name: string; colorClass: string }> = [
     { id: 'slate', name: 'Slate Dark', colorClass: 'bg-slate-800' },
@@ -66,6 +70,12 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
   const handleWidgetTypeChange = (sIdx: number, pIdx: number, wIdx: number, type: WidgetType) => {
     const updated = JSON.parse(JSON.stringify(activeSchema));
     updated.sections[sIdx].panels[pIdx].widgets[wIdx].type = type;
+    setActiveSchema(updated);
+  };
+
+  const handleChartTypeChange = (sIdx: number, pIdx: number, wIdx: number, chartType: ChartType) => {
+    const updated = JSON.parse(JSON.stringify(activeSchema));
+    updated.sections[sIdx].panels[pIdx].widgets[wIdx].chartType = chartType;
     setActiveSchema(updated);
   };
 
@@ -131,6 +141,31 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
     setActiveSchema(updated);
   };
 
+  const handleExportJson = () => {
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(activeSchema, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', `${activeSchema.id}_schema.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const handleImportJson = () => {
+    try {
+      const parsed = JSON.parse(importJsonText);
+      if (parsed.sections && Array.isArray(parsed.sections)) {
+        setActiveSchema(parsed);
+        setShowImportModal(false);
+        setImportJsonText('');
+      } else {
+        alert('Invalid schema format');
+      }
+    } catch (e) {
+      alert('Failed to parse JSON schema text');
+    }
+  };
+
   const handleSave = () => {
     const finalSchema: DashboardPageSchema = {
       ...activeSchema,
@@ -176,6 +211,21 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Import / Export JSON buttons */}
+            <button
+              onClick={handleExportJson}
+              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" /> Export JSON
+            </button>
+
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors"
+            >
+              <Upload className="w-3.5 h-3.5" /> Import JSON
+            </button>
+
             {/* View Mode Toggle */}
             <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
               <button
@@ -303,6 +353,19 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
                               <option value="chart">Chart Series</option>
                               <option value="operational">Operational Queue</option>
                             </select>
+
+                            {widget.type === 'chart' && (
+                              <select
+                                value={widget.chartType || 'bar'}
+                                onChange={(e) => handleChartTypeChange(sIdx, pIdx, wIdx, e.target.value as ChartType)}
+                                className="bg-slate-950 border border-slate-800 text-xs text-cyan-300 rounded px-2 py-1 font-mono"
+                              >
+                                <option value="bar">Bar Chart</option>
+                                <option value="line">Line Chart</option>
+                                <option value="pipeline">Pipeline Funnel</option>
+                                <option value="forecast">Forecast Variance</option>
+                              </select>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-4">
@@ -373,6 +436,34 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
                 ))}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Modal for Import JSON */}
+        {showImportModal && (
+          <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-3">
+            <h4 className="text-xs font-bold text-white">Import JSON Schema</h4>
+            <textarea
+              rows={4}
+              value={importJsonText}
+              onChange={(e) => setImportJsonText(e.target.value)}
+              placeholder="Paste DashboardPageSchema JSON definition here..."
+              className="w-full bg-slate-900 border border-slate-800 text-xs text-slate-100 p-2.5 rounded-xl font-mono"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="px-3 py-1.5 bg-slate-800 text-slate-300 text-xs rounded-lg font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImportJson}
+                className="px-3 py-1.5 bg-cyan-500 text-slate-950 text-xs font-bold rounded-lg"
+              >
+                Parse & Load Schema
+              </button>
+            </div>
           </div>
         )}
 
